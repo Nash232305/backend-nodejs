@@ -46,29 +46,7 @@ Este monto se resta del balance actual.
   {
     "balance": 95000
   }
-  
-###3. Obtener Detalles de un Movimiento
-- **URL**: https://z755adyvuc.execute-api.us-east-2.amazonaws.com/dev/detallesMovimiento/{id}/{fecha}
-- **Método**: GET
-- **Descripción**: Obtiene los detalles de un movimiento específico usando el id y fecha.
-- **Parámetros en la URL**
-```
-{id}: ID único del movimiento.
-{fecha}: Fecha del movimiento en formato ISO.
-```
-- **Respuesta**:
-```json
-Copy code
-{
-  "nombreContacto": "Juan Perez",
-  "numeroContacto": "+50612345678",
-  "detalle": "Pago de servicios",
-  "fecha": "2024-11-05T10:00:00Z",
-  "monto": 50000,
-  "tipoMovimiento": "SINPE"
-}
-```
-### 4. Obtener Todos los Movimientos
+### 3. Obtener Todos los Movimientos
 - **URL**: https://z755adyvuc.execute-api.us-east-2.amazonaws.com/dev/movements
 - **Método**: GET
 - **Descripción**: Recupera todos los movimientos registrados en la base de datos, las id y las fechas son generadas automaticamente por el sistema lo cual verá un id alfanumerico y una fecha realizada por el sistema
@@ -97,7 +75,7 @@ Copy code
 ]
 ```
 
-### 5. Agregar un Nuevo Movimiento
+### 4. Agregar un Nuevo Movimiento
 - **URL**: https://z755adyvuc.execute-api.us-east-2.amazonaws.com/dev/movements
 - **Método**: POST
 - **Descripción**: Agrega un nuevo movimiento en la base de datos.
