@@ -71,26 +71,26 @@ Copy code
 ### 4. Obtener Todos los Movimientos
 - **URL**: https://z755adyvuc.execute-api.us-east-2.amazonaws.com/dev/movements
 - **Método**: GET
-- **Descripción**: Recupera todos los movimientos registrados en la base de datos.
+- **Descripción**: Recupera todos los movimientos registrados en la base de datos, las id y las fechas son generadas automaticamente por el sistema lo cual verá un id alfanumerico y una fecha realizada por el sistema
 - **Respuesta**:
 ```json
 Copy code
 [
   {
-    "id": "1",
+    "id": "c695886d-bd47-4804-b4b7-9d0a187d1a29
     "nombreContacto": "Juan Perez",
     "numeroContacto": "+50612345678",
     "detalle": "Pago de servicios",
-    "fecha": "2024-11-05T10:00:00Z",
+    "fecha": "2024-11-06T14:00:09.741Z",
     "monto": 50000,
     "tipoMovimiento": "SINPE"
   },
   {
-    "id": "2",
+    "id": "516a8a94-1f79-479e-b98c-fe1ad1f91a2e",
     "nombreContacto": "Carlos Naranjo",
     "numeroContacto": "+50698765432",
     "detalle": "Transferencia",
-    "fecha": "2024-11-05T10:00:00Z",
+    "fecha": "2024-11-06T14:01:28.074Z",
     "monto": 20000,
     "tipoMovimiento": "SINPE"
   }
@@ -116,7 +116,7 @@ Copy code
 ```json
 Copy code
 {
-  "message": "Movimiento agregado correctamente"
+  "message": "Movimiento agregado correctamente y balance actualizado."
 }
 ```
 
@@ -149,7 +149,7 @@ Se han creado dos tablas en DynamoDB para gestionar la información:
 
 - **Propósito**: Almacenar el balance actual del usuario.
 - **Esquema**:
-  - **userId**: Clave de partición (String).
+  - **user_default**: Clave de partición (String).
   - **balance**: Atributo adicional (Número) que representa el balance actual del usuario.
 
 ### 3. Configuración de API Gateway
