@@ -105,11 +105,9 @@ Copy code
 ```json
 Copy code
 {
-  "id": "3",
   "nombreContacto": "Maria Rojas",
   "numeroContacto": "+50611223344",
   "detalle": "Compra",
-  "fecha": "2024-11-05T11:00:00Z",
   "monto": 15000,
   "tipoMovimiento": "SINPE"
 }
