@@ -77,7 +77,7 @@ Copy code
 Copy code
 [
   {
-    "id": "c695886d-bd47-4804-b4b7-9d0a187d1a29
+    "id": "c695886d-bd47-4804-b4b7-9d0a187d1a29",
     "nombreContacto": "Juan Perez",
     "numeroContacto": "+50612345678",
     "detalle": "Pago de servicios",
