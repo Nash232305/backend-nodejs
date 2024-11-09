@@ -1,23 +1,25 @@
-const AWS = require('aws-sdk');
-const { v4: uuidv4 } = require('uuid'); // Importa la función para generar UUIDs únicos.
-const dynamoDB = new AWS.DynamoDB.DocumentClient(); // Crea un cliente DocumentClient para interactuar con DynamoDB.
-const lambda = new AWS.Lambda(); // Crea un cliente Lambda para invocar otras funciones Lambda.
+// Importación de módulos necesarios
+const AWS = require('aws-sdk'); // AWS SDK para interactuar con los servicios de AWS.
+const { v4: uuidv4 } = require('uuid'); // Generador de identificadores únicos.
+const dynamoDB = new AWS.DynamoDB.DocumentClient(); // Cliente de DynamoDB para operaciones con documentos.
+const lambda = new AWS.Lambda(); // Cliente Lambda para invocar otras funciones Lambda.
 
-// Handler principal de la función Lambda.
 exports.handler = async (event) => {
     let requestBody;
+
+    // Validación inicial del cuerpo de la solicitud (event.body)
     try {
-        // Intenta parsear el cuerpo de la solicitud (event.body) como JSON.
+        // Intenta parsear el cuerpo de la solicitud como JSON
         requestBody = event.body ? JSON.parse(event.body) : null;
     } catch (e) {
-        // Devuelve un error 400 si el cuerpo de la solicitud no es un JSON válido.
+        // Retorna error 400 si el cuerpo de la solicitud no es JSON válido
         return {
             statusCode: 400,
             body: JSON.stringify({ error: "El cuerpo de la solicitud no es un JSON válido" }),
         };
     }
 
-    // Devuelve un error 400 si el cuerpo de la solicitud está vacío o es inválido.
+    // Retorna error 400 si el cuerpo de la solicitud está vacío o es inválido
     if (!requestBody) {
         return {
             statusCode: 400,
@@ -25,56 +27,76 @@ exports.handler = async (event) => {
         };
     }
 
-    // Generar valores automáticos para el movimiento.
-    const id = uuidv4(); // Genera un identificador único para el movimiento.
-    const fecha = new Date().toISOString(); // Genera la fecha actual en formato ISO 8601.
-    const tipoMovimiento = "SINPE móvil"; // Define el tipo de movimiento como fijo.
-
-    // Extrae los valores enviados en el cuerpo de la solicitud.
-    const { nombreContacto, numeroContacto, monto, detalle } = requestBody;
+    // Asignación de valores automáticos y extracción de datos del cuerpo de la solicitud
+    const id = uuidv4(); // Genera un ID único para el movimiento.
+    const fecha = new Date().toISOString(); // Fecha actual en formato ISO.
+    const tipoMovimiento = "SINPE móvil"; // Tipo de movimiento predefinido.
+    const { nombreContacto, numeroContacto, monto, detalle } = requestBody; // Destructuración de datos.
 
     try {
-        // Llama a la función Lambda `updateBalanceFunction` para reducir el balance.
+        // 1. Verificar si el balance es suficiente antes de proceder
+        const balanceParams = {
+            FunctionName: 'getBalanceFunction', // Función Lambda para obtener el balance actual.
+            InvocationType: 'RequestResponse', // Espera una respuesta inmediata.
+            Payload: JSON.stringify({}), // No requiere parámetros adicionales.
+        };
+
+        // Invoca la función para obtener el balance actual
+        const balanceResponse = await lambda.invoke(balanceParams).promise();
+        const balanceResult = JSON.parse(balanceResponse.Payload);
+
+        // Verifica el estado del balance
+        if (balanceResult.statusCode !== 200 || balanceResult.balance < monto) {
+            throw new Error(
+                balanceResult.statusCode !== 200
+                    ? 'Error al obtener el balance.' // Error al obtener el balance.
+                    : 'Fondos insuficientes para realizar esta transferencia.' // Fondos insuficientes.
+            );
+        }
+
+        // 2. Actualizar el balance del usuario
         const updateParams = {
-            FunctionName: 'updateBalanceFunction', // Nombre de la función que actualiza el balance.
-            InvocationType: 'RequestResponse', // Especifica que se espera una respuesta inmediata.
+            FunctionName: 'updateBalanceFunction', // Función Lambda para actualizar el balance.
+            InvocationType: 'RequestResponse', // Espera una respuesta inmediata.
             Payload: JSON.stringify({
-                body: JSON.stringify({ monto }) // Envía el monto como payload en el cuerpo de la solicitud.
+                body: JSON.stringify({ monto }), // Envía el monto como parámetro.
             }),
         };
 
-        const updateResponse = await lambda.invoke(updateParams).promise(); // Invoca la función Lambda.
+        // Invoca la función para actualizar el balance
+        const updateResponse = await lambda.invoke(updateParams).promise();
+        const updateResult = JSON.parse(updateResponse.Payload);
 
-        // Verifica la respuesta de `updateBalanceFunction`.
-        const updateResult = JSON.parse(updateResponse.Payload); // Parse la respuesta de la función invocada.
+        // Verifica el estado de la operación de actualización
         if (updateResult.statusCode !== 200) {
-            // Si el balance no pudo ser actualizado, lanza un error con el mensaje de respuesta.
-            throw new Error(updateResult.body);
+            throw new Error(`Error al actualizar el balance: ${updateResult.body}`);
         }
 
-        // Si el balance se actualizó correctamente, registra el nuevo movimiento en DynamoDB.
+        // 3. Registrar el movimiento en la tabla DynamoDB
         const params = {
             TableName: 'MovimientosSinpe', // Nombre de la tabla DynamoDB.
             Item: {
-                id, // Identificador único del movimiento.
+                id, // ID único del movimiento.
                 fecha, // Fecha del movimiento.
-                nombreContacto, // Nombre del contacto relacionado.
-                numeroContacto, // Número del contacto relacionado.
-                monto, // Monto del movimiento.
-                detalle, // Detalles adicionales del movimiento.
-                tipoMovimiento, // Tipo del movimiento (fijo como "SINPE móvil").
+                nombreContacto, // Nombre del contacto.
+                numeroContacto, // Número del contacto.
+                monto, // Monto de la transferencia.
+                detalle, // Detalles adicionales de la transferencia.
+                tipoMovimiento, // Tipo de movimiento (predefinido como "SINPE móvil").
             },
         };
 
-        await dynamoDB.put(params).promise(); // Inserta el nuevo movimiento en DynamoDB.
+        // Inserta el movimiento en la tabla
+        await dynamoDB.put(params).promise();
 
-        // Devuelve una respuesta exitosa si todo salió bien.
+        // Respuesta exitosa
         return {
             statusCode: 200,
-            body: JSON.stringify({ message: 'Movimiento agregado correctamente y balance actualizado' }),
+            body: JSON.stringify({ message: 'Transferencia realizada con éxito.' }),
         };
     } catch (error) {
-        // Devuelve un error 500 si ocurre un problema en cualquier parte del proceso.
+        // Manejo de errores y retorno de mensaje al cliente
+        console.error('Error en la función Lambda:', error.message);
         return {
             statusCode: 500,
             body: JSON.stringify({ error: error.message }),
