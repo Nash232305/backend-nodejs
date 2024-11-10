@@ -30,9 +30,10 @@ exports.handler = async (event) => {
     };
   }
 
-  const id = uuidv4();
+  const userId = uuidv4();
   const fecha = new Date().toISOString();
   const tipoMovimiento = "SINPE móvil";
+  const id = "default_user"; // Clave fija para la Partition Key
 
   try {
     console.log("Paso 1: Validar el balance actual.");
@@ -69,8 +70,9 @@ exports.handler = async (event) => {
           Put: {
             TableName: "MovimientosSinpe", // Nombre corregido
             Item: {
-              id,
-              fecha,
+              id, // Partition Key (valor fijo)
+              fecha, // Sort Key (fecha del movimiento)
+              userId, // Identificador único adicional
               nombreContacto,
               numeroContacto,
               monto,
