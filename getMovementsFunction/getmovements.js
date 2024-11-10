@@ -1,40 +1,37 @@
 const AWS = require('aws-sdk');
-const dynamoDB = new AWS.DynamoDB.DocumentClient(); 
-// Importa el SDK de AWS y crea una instancia del cliente DocumentClient para interactuar con DynamoDB.
+const dynamoDB = new AWS.DynamoDB.DocumentClient();
 
-// Handler principal de la función Lambda.
 exports.handler = async (event) => {
-    // Extrae el parámetro opcional 'lastEvaluatedKey' desde los parámetros de consulta en el evento.
-    const { lastEvaluatedKey } = event.queryStringParameters || {}; 
-    
-    // Configura los parámetros para el escaneo de la tabla DynamoDB.
+    const { lastEvaluatedKey, limit } = event.queryStringParameters || {};
+
     const params = {
-        TableName: 'MovimientosSinpe', // Nombre de la tabla DynamoDB.
-        Limit: 10, // Limita el número de elementos devueltos a 10.
-        ScanIndexForward: false, // Ordena los resultados de manera descendente (los más recientes primero).
+        TableName: 'MovimientosSinpe',
+        KeyConditionExpression: 'id = :id', // Filtra por Partition Key
+        ExpressionAttributeValues: {
+            ':id': 'default_user', // Valor fijo para la Partition Key
+        },
+        ScanIndexForward: false, // Orden descendente (más reciente primero)
+        Limit: parseInt(limit, 10) || 10, // Límite de elementos a devolver
     };
 
-    // Si se proporciona 'lastEvaluatedKey', lo añade a los parámetros del escaneo para continuar desde esa posición.
     if (lastEvaluatedKey) {
         params.ExclusiveStartKey = JSON.parse(decodeURIComponent(lastEvaluatedKey));
     }
 
     try {
-        // Realiza la operación 'scan' en DynamoDB utilizando los parámetros configurados.
-        const data = await dynamoDB.scan(params).promise();
+        const data = await dynamoDB.query(params).promise();
 
-        // Devuelve los elementos obtenidos y, si existe, la clave para paginación.
         return {
-            statusCode: 200, // Respuesta HTTP exitosa.
+            statusCode: 200,
             body: JSON.stringify({
-                items: data.Items, // Lista de movimientos obtenidos de la tabla.
-                lastEvaluatedKey: data.LastEvaluatedKey 
-                    ? encodeURIComponent(JSON.stringify(data.LastEvaluatedKey)) 
-                    : null // Codifica la clave para que sea segura para URL, o devuelve null si no hay más resultados.
+                items: data.Items,
+                lastEvaluatedKey: data.LastEvaluatedKey
+                    ? encodeURIComponent(JSON.stringify(data.LastEvaluatedKey))
+                    : null,
             }),
         };
     } catch (error) {
-        // Manejo de errores: devuelve un error HTTP 500 con el mensaje del error.
+        console.error('Error al consultar DynamoDB:', error);
         return {
             statusCode: 500,
             body: JSON.stringify({ error: error.message }),
